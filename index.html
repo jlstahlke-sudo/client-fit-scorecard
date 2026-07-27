@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Handl — Client Fit Scorecard</title>
+<style>
+  :root {
+    color-scheme: light;
+    --page: #f9f9f7;
+    --surface: #fcfcfb;
+    --ink: #0b0b0b;
+    --ink-2: #52514e;
+    --muted: #898781;
+    --grid: #e1e0d9;
+    --baseline: #c3c2b7;
+    --border: rgba(11,11,11,0.10);
+    --accent: #2a78d6;
+    --accent-soft: #cde2fb;
+    --good: #0ca30c;
+    --good-text: #006300;
+    --warning: #fab219;
+    --serious: #ec835a;
+    --critical: #d03b3b;
+    --chip: #f0efec;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --page: #0d0d0d;
+      --surface: #1a1a19;
+      --ink: #ffffff;
+      --ink-2: #c3c2b7;
+      --muted: #898781;
+      --grid: #2c2c2a;
+      --baseline: #383835;
+      --border: rgba(255,255,255,0.10);
+      --accent: #3987e5;
+      --accent-soft: #104281;
+      --good-text: #0ca30c;
+      --chip: #262624;
+    }
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    background: var(--page); color: var(--ink);
+    line-height: 1.5; padding: 32px 20px 64px;
+  }
+  .wrap { max-width: 960px; margin: 0 auto; }
+
+  header .brand { font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+  header h1 { font-size: 28px; font-weight: 700; margin-top: 2px; }
+  header .sub { color: var(--ink-2); font-size: 14px; margin-top: 6px; max-width: 70ch; }
+
+  .tabs { display: flex; flex-wrap: wrap; gap: 8px; margin: 24px 0 16px; }
+  .tab {
+    border: 1px solid var(--border); background: var(--surface); color: var(--ink-2);
+    padding: 8px 16px; border-radius: 999px; font-size: 14px; font-weight: 600; cursor: pointer;
+  }
+  .tab.active { background: var(--ink); color: var(--page); border-color: var(--ink); }
+  .tab.add { border-style: dashed; color: var(--muted); }
+
+  .summary {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+    padding: 24px; display: flex; gap: 28px; flex-wrap: wrap; align-items: center;
+  }
+  .hero { min-width: 150px; }
+  .hero .score { font-size: 56px; font-weight: 700; line-height: 1; }
+  .hero .of { font-size: 15px; color: var(--muted); font-weight: 500; }
+  .verdict { display: inline-flex; align-items: center; gap: 7px; margin-top: 10px;
+    font-size: 13px; font-weight: 700; padding: 4px 12px; border-radius: 999px; background: var(--chip); }
+  .verdict .dot { width: 10px; height: 10px; border-radius: 50%; flex: 0 0 auto; }
+  .verdict-note { font-size: 13px; color: var(--ink-2); margin-top: 8px; max-width: 34ch; }
+  .breakdown { flex: 1; min-width: 280px; display: grid; gap: 10px; }
+  .b-row { display: grid; grid-template-columns: 172px 1fr 74px; gap: 10px; align-items: center; font-size: 13px; }
+  .b-row .nm { color: var(--ink-2); font-weight: 600; }
+  .b-bar { height: 10px; background: var(--chip); border-radius: 4px; overflow: hidden; position: relative; }
+  .b-fill { position: absolute; inset: 0 auto 0 0; background: var(--accent); border-radius: 4px 4px 4px 4px; min-width: 2px; }
+  .b-val { color: var(--muted); font-variant-numeric: tabular-nums; text-align: right; }
+  .b-val b { color: var(--ink); }
+
+  .meta-note { font-size: 12.5px; color: var(--muted); margin: 12px 4px 0; }
+
+  .card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+    padding: 22px 24px; margin-top: 16px;
+  }
+  .dim-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .dim-head h2 { font-size: 17px; font-weight: 700; }
+  .dim-head .num { color: var(--muted); font-weight: 700; font-size: 15px; }
+  .weight { font-size: 12px; font-weight: 700; color: var(--accent); background: var(--accent-soft);
+    padding: 2px 10px; border-radius: 999px; }
+  .blurb { color: var(--ink-2); font-size: 14px; margin-top: 8px; max-width: 76ch; }
+  .anchors { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 12px; font-size: 12.5px; color: var(--muted); }
+  .anchors b { color: var(--ink-2); }
+  .anchors span { max-width: 40ch; }
+
+  .score-row { display: flex; align-items: center; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
+  .score-btn {
+    width: 42px; height: 42px; border-radius: 10px; border: 1px solid var(--border);
+    background: var(--surface); color: var(--ink-2); font-size: 16px; font-weight: 700; cursor: pointer;
+  }
+  .score-btn:hover { border-color: var(--accent); }
+  .score-btn.sel { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .score-lbl { font-size: 12.5px; color: var(--muted); margin-left: 6px; }
+
+  .evidence { margin-top: 14px; }
+  .evidence label { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  .evidence textarea {
+    width: 100%; margin-top: 6px; border: 1px solid var(--border); border-radius: 8px;
+    background: var(--page); color: var(--ink); font: inherit; font-size: 13.5px;
+    padding: 10px 12px; resize: vertical; min-height: 52px;
+  }
+
+  .gate-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 18px 20px; margin-top: 16px; }
+  .gate-card h3 { font-size: 14px; font-weight: 700; }
+  .gate-card p { font-size: 13px; color: var(--ink-2); margin-top: 4px; }
+  .gate-card textarea { width: 100%; margin-top: 12px; border: 1px solid var(--border); border-radius: 8px;
+    background: var(--page); color: var(--ink); font: inherit; font-size: 13px; padding: 9px 11px; resize: vertical; min-height: 60px; }
+
+  .compare { margin-top: 28px; }
+  .compare h2 { font-size: 17px; font-weight: 700; margin-bottom: 10px; }
+  table { width: 100%; border-collapse: collapse; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; overflow: hidden; font-size: 13.5px; }
+  th, td { padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--grid); }
+  th { font-size: 12px; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+  td { color: var(--ink-2); font-variant-numeric: tabular-nums; }
+  td.total { font-weight: 700; color: var(--ink); }
+  tr:last-child td { border-bottom: none; }
+
+  .principles { margin-top: 28px; padding: 20px 24px; border: 1px dashed var(--baseline); border-radius: 14px; }
+  .principles h2 { font-size: 14px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
+  .principles ul { margin: 10px 0 0 18px; font-size: 13.5px; color: var(--ink-2); }
+  .principles li { margin-top: 6px; }
+  footer { margin-top: 24px; font-size: 12px; color: var(--muted); }
+
+  @media print {
+    body { padding: 0; background: #fff; }
+    .tab.add, .score-btn:not(.sel) { display: none; }
+    .card, .summary, .gate-card { break-inside: avoid; border-color: #ccc; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">Handl</div>
+    <h1>Client Fit Scorecard</h1>
+    <p class="sub">A predictive assessment of each prospect across five dimensions: how likely they are to sign, what it will take internally to make the project succeed, and how ready they are overall. Score observed behavior, not stated intent — and re-score after every meaningful touchpoint, because first-call scores are always provisional.</p>
+  </header>
+
+  <div class="tabs" id="tabs"></div>
+
+  <div class="summary">
+    <div class="hero">
+      <div><span class="score" id="totalScore">0</span><span class="of"> / 100</span></div>
+      <div class="verdict" id="verdict"><span class="dot"></span><span id="verdictLbl"></span></div>
+      <div class="verdict-note" id="verdictNote"></div>
+    </div>
+    <div class="breakdown" id="breakdown"></div>
+  </div>
+  <p class="meta-note" id="prospectMeta"></p>
+
+  <div id="dims"></div>
+
+  <div class="gate-card">
+    <h3>Internal lens (noted, not scored)</h3>
+    <p>About Handl, not the client — so it stays out of the number: Is the work inspiring — does it stretch the team? Would we enjoy working with this person? Are we saying yes from strength, or scarcity?</p>
+    <textarea id="lensNotes" placeholder="Notes on inspiration, likability, and why we're saying yes…" oninput="saveLens(this.value)"></textarea>
+  </div>
+
+  <div class="compare">
+    <h2>Pipeline comparison</h2>
+    <table id="compareTable"></table>
+  </div>
+
+  <div class="principles">
+    <h2>Design principles — Chris Domina, July 23, 2026</h2>
+    <ul>
+      <li><b>Behavior over intent.</b> Rate what they do (response speed, co-creation, contracting), not what they say.</li>
+      <li><b>Sponsorship is proximity to real power, not title.</b> "Needs to sell it internally" is a double red flag.</li>
+      <li><b>Distance from core strategy predicts delivery failure.</b> Senior-leader time is non-negotiable.</li>
+      <li><b>Relationship pipeline ≫ RFP</b> (IDEO: ~70% vs ~15% win rates). Co-creating the proposal predicts collaboration quality.</li>
+      <li><b>Don't over-filter at PMF stage.</b> Use the score to prioritize the funnel and target fixes — not to shrink it.</li>
+      <li><b>Re-score at every touchpoint.</b> The trend of the score is more predictive than any single reading.</li>
+    </ul>
+  </div>
+
+  <footer>Handl client fit scorecard · v1 · July 2026 · Weights: predictors of signing (Sponsorship, Momentum) at 25 each; Readiness 20; Capacity and Value &amp; Data at 15 each. Edits live in this page only — record final scores in the pipeline notes.</footer>
+</div>
+
+<script>
+const DIMS = [
+  {
+    key: "readiness", name: "Strategic Readiness & Urgency", weight: 20,
+    blurb: "Is this problem tied to the core strategy of the business, and does it hurt enough to act now? The further the work sits from what the company is fundamentally trying to do, the less likely they deliver their side of it. Unrealistic timeline expectations aren't an inconvenience — they're a symptom of deeper misalignment about what the work takes.",
+    hi: "Owner articulates the bottleneck unprompted, and it directly blocks their growth plan.",
+    lo: "“Nice to have” energy; waiting-to-retire posture; fantasy timelines."
+  },
+  {
+    key: "sponsorship", name: "Sponsorship & Authority", weight: 25,
+    blurb: "Is the person across the table the real decision-maker — and can they act without running an internal campaign? Proximity to power beats title. If our contact has to convince partners, family, or a board, the organization isn't aligned and the contact may lack the authority to commit. Contacts new to their role haven't built the network to move things: nurture, don't push.",
+    hi: "Owner/CEO in the room with the authority to sign and to commit the team.",
+    lo: "Enthusiastic contact who must sell skeptical partners or a board."
+  },
+  {
+    key: "capacity", name: "Capacity to Execute", weight: 15,
+    blurb: "If they sign, can they actually absorb the work? Four ingredients: senior people committing real time, an internal champion who knows how the place really works, a base skill level high enough to adopt what we build, and bandwidth to engage during delivery. Fast diagnostic: “Tell me about the last time you brought something new to market.”",
+    hi: "Named champion, senior time committed, team can adopt the output.",
+    lo: "No one can give us time; base skills below the adoption threshold."
+  },
+  {
+    key: "momentum", name: "Engagement Momentum", weight: 25,
+    blurb: "What does their behavior — not their words — say about this deal closing? Response speed between touches, engagement in co-creating the proposal, whether contracting is clean or a grind, and whether the deal came through a relationship or cold/RFP. Scored on observables only, and re-scored after every touchpoint — everyone's momentum looks fine on first-call day.",
+    hi: "Fast responses, co-creating the proposal, clean contracting, warm intro.",
+    lo: "Weeks of silence, contract grinding, arm's-length RFP posture."
+  },
+  {
+    key: "value", name: "Value & Data Foundation", weight: 15,
+    blurb: "Is there a clear path to the 5:1 ROI target — and can we physically reach their data? The commercial half: identifiable value at the target ratio, and a client who thinks in value rather than counting hours. The technical half: systems the context layer can actually access. Nothing kills a six-week-value promise faster than discovering in week two that the data is unreachable.",
+    hi: "Seven-figure value identified; systems open or a data path already in motion.",
+    lo: "Hour-counter budget thinking; closed or unknown system access."
+  }
+];
+
+const prospects = [
+  {
+    name: "RD International", meta: "First call April 15, 2026 · Fashion/apparel · Relationship origin (YPO)",
+    lens: "",
+    scores: { readiness: 4, sponsorship: 3, capacity: 2, momentum: 2, value: 4 },
+    evidence: {
+      readiness: "Sophisticated operator mid-transformation; bottlenecks (production coordination, freight, sales cycle) clearly articulated and tied to strategy. (Apr 15 call)",
+      sponsorship: "Operating partner is engaged but married in — the “true merchant” wife and father-in-law are real power centers. Contracting friction may be that structure showing itself.",
+      capacity: "Base skill gap acknowledged on the call (“they don't know how to use Excel”; 7 let go). Since then: not committed to putting the internal team on discovery.",
+      momentum: "Extended contracting back-and-forth; slow overall pace since the April call. Behavior diverging from a strong first-call read.",
+      value: "$1M+ value identified on the first call; data warehouse with nightly table replication underway — best data readiness in the pipeline."
+    }
+  },
+  {
+    name: "LicaFlex", meta: "First call April 17, 2026 · Manufacturing (~$60M → $80M) · Relationship origin (YPO)",
+    lens: "",
+    scores: { readiness: 3, sponsorship: 2, capacity: 2, momentum: 2, value: 3 },
+    evidence: {
+      readiness: "Real pain (single point of failure in customer service) but at full capacity until year-end equipment lands — timing works against urgency.",
+      sponsorship: "Kenny must sell skeptical partners: “they're second-hand… is it really necessary?” — the classic sell-it-internally flag.",
+      capacity: "Lean team running hot; the one CS person “doesn't have time to sit and start educating someone.”",
+      momentum: "Wanted to move quickly, then went dark for weeks before re-engaging.",
+      value: "Clear quick win (CS relief) and possible Quebec/CDAE grant offsets; small ERP (GlobeTech) with re-import limitations."
+    }
+  },
+  {
+    name: "EB Box", meta: "Call July 20, 2026 · Food packaging (custom cartons) · Relationship origin",
+    lens: "",
+    scores: { readiness: 4, sponsorship: 4, capacity: 3, momentum: 4, value: 3 },
+    evidence: {
+      readiness: "Owner articulates the bottleneck unprompted — three disconnected systems (Sage / Carton ERP / Trello), CS at 130%, pre-press prioritization — and it blocks the expansion plan.",
+      sponsorship: "Owner in the room, decision-maker, forward-leaning throughout.",
+      capacity: "Owner personally experimenting with AI (weekend prompting); watch-out: CS team over capacity — who absorbs the change? New hire still onboarding.",
+      momentum: "Committed to an active idea exchange over the following days; warm origin. Only one touchpoint — score is provisional until the proposal lands.",
+      value: "Sage and Trello are modern and reachable; Carton ERP API access unverified — flagged on the call as the next diligence step."
+    }
+  }
+];
+
+let current = 0;
+
+function verdictFor(total) {
+  if (total >= 75) return { color: "var(--good)", label: "Prioritize", note: "Put the A-team on it. Move at their speed and protect the momentum." };
+  if (total >= 55) return { color: "var(--warning)", label: "Pursue — eyes open", note: "Worth real effort, but fix the flagged gaps before committing senior time." };
+  if (total >= 40) return { color: "var(--serious)", label: "Nurture", note: "Stay warm and name the revisit trigger. Don't spend A-team time yet." };
+  return { color: "var(--critical)", label: "Park", note: "Revisit only if something material changes. (Not a forever no — funnel stays open.)" };
+}
+
+function totalFor(p) {
+  return Math.round(DIMS.reduce((s, d) => s + (p.scores[d.key] / 5) * d.weight, 0));
+}
+
+function render() {
+  const p = prospects[current];
+
+  // tabs
+  const tabs = document.getElementById("tabs");
+  tabs.innerHTML = "";
+  prospects.forEach((pr, i) => {
+    const b = document.createElement("button");
+    b.className = "tab" + (i === current ? " active" : "");
+    b.textContent = pr.name;
+    b.onclick = () => { current = i; render(); };
+    tabs.appendChild(b);
+  });
+  const add = document.createElement("button");
+  add.className = "tab add"; add.textContent = "+ New prospect";
+  add.onclick = () => {
+    const name = prompt("Prospect name:");
+    if (!name) return;
+    prospects.push({ name, meta: "New — score after the first call", lens: "",
+      scores: { readiness: 0, sponsorship: 0, capacity: 0, momentum: 0, value: 0 },
+      evidence: { readiness: "", sponsorship: "", capacity: "", momentum: "", value: "" } });
+    current = prospects.length - 1; render();
+  };
+  tabs.appendChild(add);
+
+  // summary
+  const total = totalFor(p);
+  const v = verdictFor(total);
+  document.getElementById("totalScore").textContent = total;
+  document.getElementById("verdict").querySelector(".dot").style.background = v.color;
+  document.getElementById("verdictLbl").textContent = v.label;
+  document.getElementById("verdictNote").textContent = v.note;
+  document.getElementById("prospectMeta").textContent = p.meta;
+
+  const bd = document.getElementById("breakdown");
+  bd.innerHTML = "";
+  DIMS.forEach(d => {
+    const pts = (p.scores[d.key] / 5) * d.weight;
+    bd.insertAdjacentHTML("beforeend",
+      `<div class="b-row"><span class="nm">${d.name.replace(" & ", " & ")}</span>
+       <span class="b-bar"><span class="b-fill" style="width:${(pts / d.weight) * 100}%"></span></span>
+       <span class="b-val"><b>${Math.round(pts)}</b> / ${d.weight}</span></div>`);
+  });
+
+  // dimension cards
+  const dims = document.getElementById("dims");
+  dims.innerHTML = "";
+  DIMS.forEach((d, di) => {
+    const card = document.createElement("div");
+    card.className = "card";
+    let btns = "";
+    for (let s = 0; s <= 5; s++) {
+      btns += `<button class="score-btn${p.scores[d.key] === s ? " sel" : ""}" onclick="setScore('${d.key}',${s})">${s}</button>`;
+    }
+    card.innerHTML = `
+      <div class="dim-head"><span class="num">${di + 1}.</span><h2>${d.name}</h2><span class="weight">${d.weight}% of score</span></div>
+      <p class="blurb">${d.blurb}</p>
+      <div class="anchors">
+        <span><b>5 looks like:</b> ${d.hi}</span>
+        <span><b>1 looks like:</b> ${d.lo}</span>
+      </div>
+      <div class="score-row">${btns}<span class="score-lbl">0 = unknown / not present · 5 = unambiguous</span></div>
+      <div class="evidence"><label>Evidence — ${p.name}</label>
+        <textarea oninput="saveEvidence('${d.key}', this.value)">${p.evidence[d.key] || ""}</textarea>
+      </div>`;
+    dims.appendChild(card);
+  });
+
+  // internal lens
+  document.getElementById("lensNotes").value = p.lens || "";
+
+  // comparison table
+  const t = document.getElementById("compareTable");
+  let html = "<tr><th>Prospect</th>" + DIMS.map(d => `<th>${d.name.split(" ")[0].replace("&","&amp;")} <span style="font-weight:500">(${d.weight})</span></th>`).join("") + "<th>Total /100</th><th>Read</th></tr>";
+  prospects.forEach(pr => {
+    const tt = totalFor(pr);
+    const vv = verdictFor(tt);
+    html += `<tr><td style="font-weight:600;color:var(--ink)">${pr.name}</td>` +
+      DIMS.map(d => `<td>${pr.scores[d.key]}</td>`).join("") +
+      `<td class="total">${tt}</td><td><span style="display:inline-flex;align-items:center;gap:6px"><span style="width:9px;height:9px;border-radius:50%;background:${vv.color}"></span>${vv.label}</span></td></tr>`;
+  });
+  t.innerHTML = html;
+}
+
+function setScore(key, s) { prospects[current].scores[key] = s; render(); }
+function saveEvidence(key, v) { prospects[current].evidence[key] = v; }
+function saveLens(v) { prospects[current].lens = v; }
+
+render();
+</script>
+</body>
+</html>
